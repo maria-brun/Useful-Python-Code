@@ -5,23 +5,25 @@ Created on Tue Jul  3 08:47:09 2018
 @author: mcboe72
 """
 
+#Get the working directory
 
+import os
+os.getcwd()
 
+#Change the working directory and confirm it changed to where you want it to be!
 
-
-
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Jun 29 09:01:27 2018
-
-@author: mcboe72
-"""
+os.chdir('C:\\Users\\mcboe72\\Desktop\\')
+os.getcwd()
 
 
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from bs4 import BeautifulSoup
 import time
+from inscriptis import get_text
+import pandas as pd
+from pandas import DataFrame
+import csv
 
 class Job():
     def _init_(self):
@@ -47,7 +49,7 @@ def login_and_search(keyword, location):
         
     place = driver.find_element_by_xpath('//*[@id="where2"]')
     place.send_keys(Keys.CONTROL + "a");
-    place.send_keys(Keys.DELETE);
+    place.send_keys(Keys.DELETE)
     place.send_keys(location)    
     time.sleep(1)
         
@@ -69,7 +71,7 @@ def get_detail_information(driver):
         job_title = title.text
         link_find = result.find('div', class_='summary')
         link = link_find.find('a')
-        job_link = link.attrs['href'].strip()
+        job_link = link.attrs['href'].strip().replace('\r', '').replace('\n', '')
         company = result.find('div', class_='company')
         company_name = company.text.replace('\r', '').replace('\n', '')
         location = result.find('div', class_='location')
@@ -95,34 +97,53 @@ def get_detail_information(driver):
 
 get_detail_information(login_and_search('data scientist','Minneapolis, MN'))
 
-get_detail_information(login_and_search('data scientist','Vermont'))
+#get_detail_information(login_and_search('data scientist','Vermont'))
 
-link_list[2]
+#link_list[2]
 
-jobs_and_quals_list = []
+good_job_list = []
+
+key_words = ['python','SAS','sas','PhD', 'economics', 'economist','data','SQL', 'phd','dashboard','dashboards','vizualizations', 'visualization']
 
 def click_link(link):
-    
-    quals_list = []
     
     link_driver = webdriver.Chrome(executable_path=r'C:\Users\mcboe72\Anaconda\chromedriver.exe' )
     
     link_driver.get(link)
-        
+    
     link_soup = BeautifulSoup(link_driver.page_source, 'lxml')
-    
-    job = link_soup.find('div', {'JobBody'}).text
-    
-    description = link_soup.find('div', {'id':'JobDesription'})
-    
-    for qual in description.find_all('li'):
-        qualification = qual.text
-        quals_list.append(qualification)
+        
+    link_soup_text = str(BeautifulSoup(link_driver.page_source, 'lxml'))
 
-    job_quals = quals_list.append(job)
+    text = str(get_text(link_soup_text).lower())
     
-    jobs_and_quals_list.append(job_quals)
+    text_list = text.split()
     
+    heading = link_soup.find('div', class_ = 'heading').text.replace('\r', '').replace('\n', '')
+          
+    link_driver.quit()
+  
+    #print(heading)
 
-for item in link_list:
-    click_link(item)
+
+    keyword_count = 0
+    
+    for word in text_list:
+        if word in key_words:
+            keyword_count = keyword_count +1
+    
+    if keyword_count>0:
+        good_job = (heading, link)
+        good_job_list.append(good_job)
+
+
+for link in link_list:
+    click_link(link)
+
+#print(good_job_list)
+
+GOOD_JOBS = DataFrame.from_records(good_job_list)
+GOOD_JOBS.columns = ['Job', 'Link',]
+GOOD_JOBS.head(10)
+
+GOOD_JOBS.to_csv('GOOD_JOBS.csv')
