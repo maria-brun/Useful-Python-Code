@@ -23,7 +23,7 @@ import time
 from inscriptis import get_text
 import pandas as pd
 from pandas import DataFrame
-import csv
+from selenium.common.exceptions import NoSuchElementException
 
 class Job():
     def _init_(self):
@@ -41,7 +41,7 @@ def login_and_search(keyword, location):
     
     driver.get('https://www.monster.com/')
         
-    driver.maximize_window()
+    #driver.maximize_window()
         
     search = driver.find_element_by_xpath('//*[@id="q2"]')
     search.send_keys(keyword)
@@ -57,6 +57,15 @@ def login_and_search(keyword, location):
     search_buttom.click()
     time.sleep(1)
     
+    '''try:
+        more_button = driver.find_element_by_xpath('//*[@id="ResultsScrollable"]/div/a')
+        more_button.click()
+        time.sleep(1)
+        more_button.click()
+    except NoSuchElementException:
+        pass'''
+    
+    
     return driver
 
 def get_detail_information(driver):
@@ -65,12 +74,12 @@ def get_detail_information(driver):
     
     results = soup.find('div', {'id':'SearchResults'})    #job_list = []
     
-    for result in results.find_all('section', class_='card-content'):
+    for result in results.find_all('section', class_ = 'card-content'): #{"class":["card-content", "card-content is-active"]}):
         
-        title = result.find('h2', class_ = 'title')
-        job_title = title.text
-        link_find = result.find('div', class_='summary')
-        link = link_find.find('a')
+        info_find = result.find('div', class_='summary')
+        title = info_find.find('h2', class_ = 'title')
+        job_title = title.text 
+        link = info_find.find('a')
         job_link = link.attrs['href'].strip().replace('\r', '').replace('\n', '')
         company = result.find('div', class_='company')
         company_name = company.text.replace('\r', '').replace('\n', '')
@@ -97,13 +106,13 @@ def get_detail_information(driver):
 
 get_detail_information(login_and_search('data scientist','Minneapolis, MN'))
 
-#get_detail_information(login_and_search('data scientist','Vermont'))
+get_detail_information(login_and_search('data scientist','Vermont'))
 
-#link_list[2]
+len(link_list)
 
 good_job_list = []
 
-key_words = ['python','SAS','sas','PhD', 'economics', 'economist','data','SQL', 'phd','dashboard','dashboards','vizualizations', 'visualization']
+key_words = ['python','SAS','sas','PhD', 'economics', 'machine', 'predictive', 'economist','data','SQL', 'phd','dashboard','dashboards','vizualizations', 'visualization']
 
 def click_link(link):
     
@@ -120,6 +129,10 @@ def click_link(link):
     text_list = text.split()
     
     heading = link_soup.find('div', class_ = 'heading').text.replace('\r', '').replace('\n', '')
+    
+    heading_obj = link_soup.find('div', class_ = 'heading')
+    
+    location = heading_obj.find('h2').text
           
     link_driver.quit()
   
@@ -133,17 +146,15 @@ def click_link(link):
             keyword_count = keyword_count +1
     
     if keyword_count>0:
-        good_job = (heading, link)
+        good_job = (keyword_count, heading, location, link)
         good_job_list.append(good_job)
 
 
 for link in link_list:
     click_link(link)
 
-#print(good_job_list)
-
 GOOD_JOBS = DataFrame.from_records(good_job_list)
-GOOD_JOBS.columns = ['Job', 'Link',]
-GOOD_JOBS.head(10)
+GOOD_JOBS.columns = ['Relevance', 'Job', 'Location', 'Link',]
+GOOD_JOBS.sort_values(by='Relevance', ascending=False)
 
 GOOD_JOBS.to_csv('GOOD_JOBS.csv')
