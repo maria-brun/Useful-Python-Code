@@ -24,6 +24,8 @@ from inscriptis import get_text
 import pandas as pd
 from pandas import DataFrame
 from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import ElementNotVisibleException
+from datetime import datetime 
 
 class Job():
     def _init_(self):
@@ -41,7 +43,7 @@ def login_and_search(keyword, location):
     
     driver.get('https://www.monster.com/')
         
-    #driver.maximize_window()
+    driver.maximize_window()
         
     search = driver.find_element_by_xpath('//*[@id="q2"]')
     search.send_keys(keyword)
@@ -57,15 +59,15 @@ def login_and_search(keyword, location):
     search_buttom.click()
     time.sleep(1)
     
-    '''try:
+    try:
         more_button = driver.find_element_by_xpath('//*[@id="ResultsScrollable"]/div/a')
         more_button.click()
         time.sleep(1)
         more_button.click()
     except NoSuchElementException:
-        pass'''
-    
-    
+        time.sleep(1)
+        
+
     return driver
 
 def get_detail_information(driver):
@@ -74,6 +76,8 @@ def get_detail_information(driver):
     
     results = soup.find('div', {'id':'SearchResults'})    #job_list = []
     
+    
+   
     for result in results.find_all('section', class_ = 'card-content'): #{"class":["card-content", "card-content is-active"]}):
         
         info_find = result.find('div', class_='summary')
@@ -127,12 +131,14 @@ def click_link(link):
     text = str(get_text(link_soup_text).lower())
     
     text_list = text.split()
-    
-    heading = link_soup.find('div', class_ = 'heading').text.replace('\r', '').replace('\n', '')
-    
-    heading_obj = link_soup.find('div', class_ = 'heading')
-    
-    location = heading_obj.find('h2').text
+
+    try:
+        heading = link_soup.find('div', class_ = 'heading').text.replace('\r', '').replace('\n', '')
+        heading_obj = link_soup.find('div', class_ = 'heading')
+        location = heading_obj.find('h2').text
+    except AttributeError:
+        return None
+
           
     link_driver.quit()
   
@@ -155,6 +161,8 @@ for link in link_list:
 
 GOOD_JOBS = DataFrame.from_records(good_job_list)
 GOOD_JOBS.columns = ['Relevance', 'Job', 'Location', 'Link',]
-GOOD_JOBS.sort_values(by='Relevance', ascending=False)
+GOOD_JOBS.head()
+
+
 
 GOOD_JOBS.to_csv('GOOD_JOBS.csv')
